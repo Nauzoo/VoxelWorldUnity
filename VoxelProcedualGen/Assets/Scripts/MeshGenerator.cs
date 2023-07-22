@@ -3,37 +3,49 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshFilter))]
+[RequireComponent(typeof(MeshRenderer))]
 public class MeshGenerator : MonoBehaviour
 {
-    [SerializeField] private List<Vector3> vertices;
-    [SerializeField] private List<int> triangles;
+    private List<Vector3> vertices;
+    private List<int> triangles;
+    
     private BlockTypes[,,] chunkData;
 
     public GameObject cubePrefab;
 
-    public float seed = 18;
+    public float seed;
+    private int MaxH;
+    private int MaxS;
+    List<BlockTypes> notSolids = new List<BlockTypes>() { BlockTypes.Air, BlockTypes.None };
     Mesh mesh;
 
     public void Start()
     {
         chunkData = ChunkGenerator.GenerateChunk(seed);
-        //cubePrefab = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        vertices = new List<Vector3>();
+        triangles = new List<int>();
+
+        MaxH = ChunkData.chunkHeight;
+        MaxS = ChunkData.chunkSize;
+
         mesh = new Mesh();
         //StartCoroutine(CreateShape(chunkData));
         CreateMesh(chunkData);
         UpdateMesh();
 
         GetComponent<MeshFilter>().mesh = mesh;
+        
+        vertices.Clear(); triangles.Clear();
     }    
 
     IEnumerator CreateShape(BlockTypes[,,] chunkLayers)
     {
         
-        for (int pilar = 0; pilar < ChunkData.chunkHeight; pilar++)
+        for (int pilar = 0; pilar < MaxH; pilar++)
         {
-            for (int line = 0; line < ChunkData.chunkSize; line++)
+            for (int line = 0; line < MaxS; line++)
             {
-                for (int colon = 0; colon < ChunkData.chunkSize; colon++)
+                for (int colon = 0; colon < MaxS; colon++)
                 {
                     if (chunkLayers[pilar, line, colon] == BlockTypes.Solid)
                     {
@@ -46,82 +58,44 @@ public class MeshGenerator : MonoBehaviour
         }
     }
 
-    private Vector3 vertice0 = new Vector3(-1, -1, -1);
-    private Vector3 vertice1 = new Vector3(1, -1, -1);
-    private Vector3 vertice2 = new Vector3(1, -1, 1);
-    private Vector3 vertice3 = new Vector3(-1, -1, 1);
-    private Vector3 vertice4 = new Vector3(-1, 1, -1);
-    private Vector3 vertice5 = new Vector3(1, 1, -1);
-    private Vector3 vertice6 = new Vector3(1, 1, 1);
-    private Vector3 vertice7 = new Vector3(-1, 1, 1);
     void CreateMesh(BlockTypes[,,] chunkLayers)
     {
-        for (int pilar = 0; pilar < ChunkData.chunkHeight; pilar++)
+        Vector3[] Faces = new Vector3[]  
         {
-            for (int line = 0; line < ChunkData.chunkSize; line++)
+            new Vector3(-1, 1, -1), new Vector3(1, 1, -1),  new Vector3(1, 1, 1), new Vector3(-1, 1, 1),    //TOP FACE
+            new Vector3(-1, -1, 1), new Vector3(1, -1, 1), new Vector3(1, -1, -1), new Vector3(-1, -1, -1), //BOTTOM FACE
+            new Vector3(1, -1, 1), new Vector3(1, 1, 1), new Vector3(1, 1, -1),  new Vector3(1, -1, -1),    // RIGHT FACE
+            new Vector3(-1, 1, 1), new Vector3(-1, -1, 1), new Vector3(-1, -1, -1), new Vector3(-1, 1, -1), //LEFT FACE
+            new Vector3(1, -1, 1), new Vector3(-1, -1, 1), new Vector3(-1, 1, 1), new Vector3(1, 1, 1),     // FRONT FACE
+            new Vector3(-1, -1, -1), new Vector3(1, -1, -1), new Vector3(1, 1, -1), new Vector3(-1, 1, -1)  // BACK FACE
+        };
+
+        int[,] directions =
+                        { { 1, 0, 0 },
+                          { -1, 0, 0},
+                          { 0, 1, 0 },
+                          { 0, -1, 0},
+                          { 0, 0, 1 },
+                          { 0, 0, -1}
+                        };
+
+        for (int pilar = 0; pilar < MaxH; pilar++)
+        {
+            for (int line = 0; line < MaxS; line++)
             {
-                for (int colon = 0; colon < ChunkData.chunkSize; colon++)
+                for (int colon = 0; colon < MaxS; colon++)
                 {
                     if (chunkLayers[pilar, line, colon] == BlockTypes.Solid)
                     {
-                        if (pilar < ChunkData.chunkHeight - 1) // +Y CHECK
-                        {
-                            if (chunkLayers[pilar + 1, line, colon] == BlockTypes.Air)
-                                AddFace(new Vector3(line, pilar, colon), new Vector3[] { 
-                                    vertice4, vertice5, vertice6, vertice7
-                                });
-                        } else AddFace(new Vector3(line, pilar, colon), new Vector3[] { vertice4, vertice5, vertice6, vertice7 });
-
-                        if (pilar > 0) // -Y CHECK
-                        {
-                            if (chunkLayers[pilar - 1, line, colon] == BlockTypes.Air)
-                                AddFace(new Vector3(line, pilar, colon), new Vector3[] {
-                                    vertice3, vertice2, vertice1, vertice0
-                                });
-                        }  else AddFace(new Vector3(line, pilar, colon), new Vector3[] { vertice3, vertice2, vertice1, vertice0 });
-
-                        if (line < ChunkData.chunkSize - 1) // +X CHECK
-                        {
-                            if (chunkLayers[pilar, line + 1, colon] == BlockTypes.Air)
-                                AddFace(new Vector3(line, pilar, colon), new Vector3[] {
-                                    vertice2, vertice6, vertice5, vertice1
-                                });
+                        for (int dir = 0; dir < 6; dir++)
+                        {                            
+                            if (notSolids.Contains(chunkLayers[pilar + directions[dir, 0], line + directions[dir, 1], colon + directions[dir, 2]]))
+                                AddFace(new Vector3(line, pilar, colon), new Vector3[] { Faces[dir * 4], Faces[dir * 4 + 1], Faces[dir * 4 + 2], Faces[dir * 4 + 3] });                            
                         }
-                        else AddFace(new Vector3(line, pilar, colon), new Vector3[] { vertice2, vertice6, vertice5, vertice1 });
-                        
-                        if (line > 0) // -X CHECK
-                        {
-                            if (chunkLayers[pilar, line - 1, colon] == BlockTypes.Air)
-                                AddFace(new Vector3(line, pilar, colon), new Vector3[] {
-                                    vertice7, vertice3, vertice0, vertice4
-                                });
-                        }
-                        else AddFace(new Vector3(line, pilar, colon), new Vector3[] { vertice7, vertice3, vertice0, vertice4 });
-
-
-                        if (colon < ChunkData.chunkSize - 1) // +Z CHECK
-                        {
-                            if (chunkLayers[pilar, line, colon + 1] == BlockTypes.Air)
-                                AddFace(new Vector3(line, pilar, colon), new Vector3[] {
-                                    vertice2, vertice3, vertice7, vertice6
-                                });
-                        }
-                        else AddFace(new Vector3(line, pilar, colon), new Vector3[] { vertice2, vertice3, vertice7, vertice6 });
-
-                        if (colon > 0) // -Z CHECK
-                        {
-                            if (chunkLayers[pilar, line, colon - 1] == BlockTypes.Air)
-                                AddFace(new Vector3(line, pilar, colon), new Vector3[] {
-                                    vertice0, vertice1, vertice5, vertice4
-                                });
-                        }
-                        else AddFace(new Vector3(line, pilar, colon), new Vector3[] { vertice0, vertice1, vertice5, vertice4 });
-
                     }
                 }
             }
         }
-
     }
     void AddFace(Vector3 position, Vector3[] vertexes)
     {
@@ -133,7 +107,6 @@ public class MeshGenerator : MonoBehaviour
         triangles.Add(vertices.Count - 4); triangles.Add(vertices.Count -1);
         triangles.Add(vertices.Count - 2); triangles.Add(vertices.Count - 4);
         triangles.Add(vertices.Count - 2); triangles.Add(vertices.Count - 3);
-
     }
 
     private void UpdateMesh()
@@ -143,17 +116,6 @@ public class MeshGenerator : MonoBehaviour
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
         
-        mesh.RecalculateNormals();
+        mesh.RecalculateNormals();        
     }
-    
-    /*private void OnDrawGizmos()
-    {
-        if (vertices == null)
-            return;
-
-        for (int i = 0; i < vertices.Count; i++)
-        {
-            Gizmos.DrawSphere(vertices[i], 0.1f);
-        }
-    }*/
 }

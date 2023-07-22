@@ -5,5 +5,6 @@ using UnityEngine;
 public enum BlockTypes
 {
     Solid,
-    Air
+    Air,
+    None
 }
