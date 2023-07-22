@@ -503,4 +503,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cubePrefab: {fileID: 5873154737343510884, guid: 5cc94cfdd438e8a418bd7de2b1e4f52c,
     type: 3}
-  seed: 19
+  seed: 18
