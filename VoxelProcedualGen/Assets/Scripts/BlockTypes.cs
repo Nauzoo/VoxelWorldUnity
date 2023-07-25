@@ -6,5 +6,6 @@ public enum BlockTypes
 {
     Solid,
     Air,
+    Barrier,
     None
 }

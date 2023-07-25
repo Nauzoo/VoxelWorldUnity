@@ -4,62 +4,62 @@ using UnityEngine;
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
-public class MeshGenerator : MonoBehaviour
+public class Chunk
 {
-    private List<Vector3> vertices;
-    private List<int> triangles;
-    
-    private BlockTypes[,,] chunkData;
+    private List<Vector3> vertices = new List<Vector3>();
+    private List<int> triangles = new List<int>();
 
-    public GameObject cubePrefab;
+    MeshRenderer meshRend;
+    MeshFilter meshFilt;
 
-    public float seed;
-    private int MaxH;
-    private int MaxS;
-    List<BlockTypes> notSolids = new List<BlockTypes>() { BlockTypes.Air, BlockTypes.None };
-    Mesh mesh;
+    List<BlockTypes> notSolids = new List<BlockTypes>() { BlockTypes.Air, BlockTypes.Barrier };    
+    private WorldMap worldMap;
+    public Vector2 coords { get; private set; }
 
-    public void Start()
+    GameObject chunkObj;
+
+    public Chunk (WorldMap world, Vector2 coords)
     {
-        chunkData = ChunkGenerator.GenerateChunk(seed);
-        vertices = new List<Vector3>();
-        triangles = new List<int>();
+        worldMap = world;
+        this.coords = coords;
 
-        MaxH = ChunkData.chunkHeight;
-        MaxS = ChunkData.chunkSize;
+        chunkObj = new GameObject();
+        meshFilt = chunkObj.AddComponent<MeshFilter>();
+        meshRend = chunkObj.AddComponent<MeshRenderer>();
+        meshRend.material = worldMap.worldMaterial;
+        chunkObj.transform.SetParent(worldMap.transform);
+        chunkObj.transform.position = new Vector3(this.coords.x * ChunkData.chunkSize, 0f, this.coords.y * ChunkData.chunkSize);        
+        chunkObj.name = $"chunk p({this.coords.x}, {this.coords.y})";
 
-        mesh = new Mesh();
-        //StartCoroutine(CreateShape(chunkData));
-        CreateMesh(chunkData);
-        UpdateMesh();
-
-        GetComponent<MeshFilter>().mesh = mesh;
-        
-        vertices.Clear(); triangles.Clear();
-    }    
-
-    IEnumerator CreateShape(BlockTypes[,,] chunkLayers)
+        CreateMesh(GenerateChunk(18));
+    }
+    public BlockTypes[,,] GenerateChunk(float noiseScale)
     {
+        int MaxH = ChunkData.borderHeight;
+        int MaxS = ChunkData.borderSize;
+
         
+        BlockTypes[,,] chunkLayers = new BlockTypes[MaxH, MaxS, MaxS];
+
         for (int pilar = 0; pilar < MaxH; pilar++)
         {
             for (int line = 0; line < MaxS; line++)
             {
                 for (int colon = 0; colon < MaxS; colon++)
                 {
-                    if (chunkLayers[pilar, line, colon] == BlockTypes.Solid)
-                    {
-                        cubePrefab.transform.position = new Vector3(line, pilar, colon);
-                        Instantiate(cubePrefab);
-                        yield return new WaitForSeconds(.01f);
-                    }
-                }                
+                    chunkLayers[pilar, line, colon] = worldMap.GetVoxel(new Vector3(line, pilar, colon), chunkObj.transform.position);
+                }
             }
         }
+
+        return chunkLayers;
     }
 
-    void CreateMesh(BlockTypes[,,] chunkLayers)
-    {
+    void CreateMesh(BlockTypes[,,] chunkLayers) {
+
+        int MaxH = ChunkData.borderHeight;
+        int MaxS = ChunkData.borderSize;
+
         Vector3[] Faces = new Vector3[]  
         {
             new Vector3(-1, 1, -1), new Vector3(1, 1, -1),  new Vector3(1, 1, 1), new Vector3(-1, 1, 1),    //TOP FACE
@@ -96,6 +96,10 @@ public class MeshGenerator : MonoBehaviour
                 }
             }
         }
+
+        UpdateMesh();
+        
+        vertices.Clear(); triangles.Clear();
     }
     void AddFace(Vector3 position, Vector3[] vertexes)
     {
@@ -111,11 +115,17 @@ public class MeshGenerator : MonoBehaviour
 
     private void UpdateMesh()
     {
-        mesh.Clear();        
+        meshFilt.mesh.Clear();        
 
-        mesh.vertices = vertices.ToArray();
-        mesh.triangles = triangles.ToArray();
-        
-        mesh.RecalculateNormals();        
+        meshFilt.mesh.vertices = vertices.ToArray();
+        meshFilt.mesh.triangles = triangles.ToArray();
+
+        meshFilt.mesh.RecalculateNormals();        
+    }
+
+    public bool isActive
+    {
+        get { return chunkObj.activeSelf; }
+        set { chunkObj.SetActive(value); }
     }
 }
