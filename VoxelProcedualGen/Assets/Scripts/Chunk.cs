@@ -14,11 +14,11 @@ public class Chunk
 
     List<BlockTypes> notSolids = new List<BlockTypes>() { BlockTypes.Air, BlockTypes.Barrier };    
     private WorldMap worldMap;
-    public Vector2 coords { get; private set; }
+    public Vector2Int coords { get; private set; }
 
     GameObject chunkObj;
 
-    public Chunk (WorldMap world, Vector2 coords)
+    public Chunk (WorldMap world, Vector2Int coords)
     {
         worldMap = world;
         this.coords = coords;
@@ -31,9 +31,9 @@ public class Chunk
         chunkObj.transform.position = new Vector3(this.coords.x * ChunkData.chunkSize, 0f, this.coords.y * ChunkData.chunkSize);        
         chunkObj.name = $"chunk p({this.coords.x}, {this.coords.y})";
 
-        CreateMesh(GenerateChunk(18));
+        CreateMesh(GenerateChunk());
     }
-    public BlockTypes[,,] GenerateChunk(float noiseScale)
+    public BlockTypes[,,] GenerateChunk()
     {
         int MaxH = ChunkData.borderHeight;
         int MaxS = ChunkData.borderSize;
@@ -47,7 +47,7 @@ public class Chunk
             {
                 for (int colon = 0; colon < MaxS; colon++)
                 {
-                    chunkLayers[pilar, line, colon] = worldMap.GetVoxel(new Vector3(line, pilar, colon), chunkObj.transform.position);
+                    chunkLayers[pilar, line, colon] = worldMap.GetVoxel(new Vector3Int(line, pilar, colon), chunkObj.transform.position);
                 }
             }
         }

@@ -7,7 +7,8 @@ public class WorldMap : MonoBehaviour
 
     public readonly static int worldSizeInChunks = 10;
     public readonly static int worldSizeInBlocks = worldSizeInChunks * ChunkData.chunkSize;
-    public readonly static int fov = 2;
+    List<float> worldBounds = new List<float>() { (worldSizeInChunks * ChunkData.chunkSize), 0f };
+    public readonly static int fov = 5;
 
     List<Vector2Int> activeChunks = new List<Vector2Int>();
 
@@ -16,8 +17,12 @@ public class WorldMap : MonoBehaviour
     private Vector2Int playerLastChunk;
 
     Chunk[,] worldChunks = new Chunk[worldSizeInChunks, worldSizeInChunks];
+
+    public int SEED;
     void Start()
     {
+        Random.InitState(SEED);
+
         spawnPoint = new Vector3(worldSizeInBlocks / 2f, ChunkData.chunkHeight, worldSizeInBlocks / 2f);
         playerLastChunk = GetChunkCoordFromVector3(spawnPoint);
         GenerateWorld();
@@ -75,28 +80,28 @@ public class WorldMap : MonoBehaviour
     }
     void CreateChunk(int x, int z)
     {        
-        worldChunks[x, z] = new Chunk(this, new Vector3(x, z));
+        worldChunks[x, z] = new Chunk(this, new Vector2Int(x, z));
         activeChunks.Add(new Vector2Int(x, z));
     }
-    public BlockTypes GetVoxel(Vector3 chunkPos, Vector3 absolutePos)
+    public BlockTypes GetVoxel(Vector3Int chunkPos, Vector3 absolutePos)
     {
-        Vector3 pos = chunkPos + absolutePos;
-        List<int> worldBounds = new List<int>() {worldSizeInChunks * ChunkData.chunkSize, 0 };        
+        Vector3 pos = chunkPos + absolutePos;        
 
-        List<int> chunkBounds = new List<int>() { ChunkData.borderSize - 1, 0 };
+        if (!IsVoxelInWorld(pos))
+            return BlockTypes.Barrier;
 
-        if (worldBounds.Contains((int)pos.x)) return BlockTypes.Barrier;
-        else if (pos.y == ChunkData.chunkSize || pos.y == 0) return BlockTypes.Barrier;
-        else if (worldBounds.Contains((int)pos.z)) return BlockTypes.Barrier;
+        //int terrainHight = Mathf.FloorToInt(ChunkData.chunkHeight * GetPerlianNoise2D(new Vector2(pos.x, pos.z), 250, 0.3f));
+        int terrainHight = Mathf.FloorToInt(Mathf.Sin(pos.x * 0.2f) * 25) + 50;
 
-        if (chunkBounds.Contains((int)chunkPos.x)) return BlockTypes.None;
-        else if (chunkPos.y == ChunkData.borderHeight-1 || chunkPos.y == 0) return BlockTypes.Barrier;
-        else if (chunkBounds.Contains((int)chunkPos.z)) return BlockTypes.None;
-
-        if (pos.y < ChunkData.chunkHeight)
-            return BlockTypes.Solid;
-        else
+        if (pos.y > terrainHight)
             return BlockTypes.Air;
+
+        if (IsVoxelInChunk(chunkPos) && pos.y <= terrainHight)
+            return BlockTypes.Solid;
+        
+        else
+            return BlockTypes.None;
+
     }
 
     bool IsChunkInWorld(int x, int z)
@@ -108,6 +113,22 @@ public class WorldMap : MonoBehaviour
             return false;
 
     }
+    bool IsVoxelInWorld(Vector3 posInWorld)
+    {
+        if (worldBounds.Contains(posInWorld.x)) return false;
+        else if (posInWorld.y == ChunkData.chunkSize || posInWorld.y == 0) return false;
+        else if (worldBounds.Contains(posInWorld.z)) return false;
+
+        else return true;
+    }
+    bool IsVoxelInChunk(Vector3Int posInChunk)
+    {
+        if (ChunkData.chunkBounds.Contains(posInChunk.x)) return false;
+        else if (posInChunk.y == ChunkData.borderHeight - 1 || posInChunk.y == 0) return false;
+        else if (ChunkData.chunkBounds.Contains(posInChunk.z)) return false;
+
+        else return true;
+    }
 
     Vector2Int GetChunkCoordFromVector3(Vector3 pos)
     {
@@ -115,5 +136,10 @@ public class WorldMap : MonoBehaviour
         int z = Mathf.FloorToInt(pos.z / ChunkData.chunkSize);
 
         return new Vector2Int(x, z);
+    }
+
+    public float GetPerlianNoise2D(Vector2 pos, int offset, float scale)
+    {
+        return Mathf.PerlinNoise(pos.x / ChunkData.chunkSize * scale + offset, pos.y / ChunkData.chunkSize * scale + offset);
     }
 }
