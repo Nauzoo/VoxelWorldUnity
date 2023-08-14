@@ -8,6 +8,8 @@ public class Chunk
 {
     private List<Vector3> vertices = new List<Vector3>();
     private List<int> triangles = new List<int>();
+    private List<Color> colors = new List<Color>();
+    private Gradient gradient;
 
     MeshRenderer meshRend;
     MeshFilter meshFilt;
@@ -22,6 +24,7 @@ public class Chunk
     {
         worldMap = world;
         this.coords = coords;
+        gradient = world.gradient;
 
         chunkObj = new GameObject();
         meshFilt = chunkObj.AddComponent<MeshFilter>();
@@ -111,6 +114,11 @@ public class Chunk
         triangles.Add(vertices.Count - 4); triangles.Add(vertices.Count -1);
         triangles.Add(vertices.Count - 2); triangles.Add(vertices.Count - 4);
         triangles.Add(vertices.Count - 2); triangles.Add(vertices.Count - 3);
+
+        colors.Add(gradient.Evaluate(Mathf.InverseLerp(ChunkData.minTerrainHight, ChunkData.maxTerrainHight, vertexes[0].y)));
+        colors.Add(gradient.Evaluate(Mathf.InverseLerp(ChunkData.minTerrainHight, ChunkData.maxTerrainHight, vertexes[1].y)));
+        colors.Add(gradient.Evaluate(Mathf.InverseLerp(ChunkData.minTerrainHight, ChunkData.maxTerrainHight, vertexes[2].y)));
+        colors.Add(gradient.Evaluate(Mathf.InverseLerp(ChunkData.minTerrainHight, ChunkData.maxTerrainHight, vertexes[3].y)));
     }
 
     private void UpdateMesh()
@@ -119,6 +127,7 @@ public class Chunk
 
         meshFilt.mesh.vertices = vertices.ToArray();
         meshFilt.mesh.triangles = triangles.ToArray();
+        meshFilt.mesh.colors = colors.ToArray();
 
         meshFilt.mesh.RecalculateNormals();        
     }

@@ -11,4 +11,7 @@ public static class ChunkData
     public readonly static int borderHeight = chunkHeight + 2;
 
     public static readonly List<int> chunkBounds = new List<int>() { ChunkData.borderSize - 1, 0 };
+
+    public static int maxTerrainHight = 0;
+    public static int minTerrainHight = 0;
 }

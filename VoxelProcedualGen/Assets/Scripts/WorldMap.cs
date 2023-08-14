@@ -19,6 +19,7 @@ public class WorldMap : MonoBehaviour
     Chunk[,] worldChunks = new Chunk[worldSizeInChunks, worldSizeInChunks];
 
     public int SEED;
+    public Gradient gradient;
     void Start()
     {
         Random.InitState(SEED);
